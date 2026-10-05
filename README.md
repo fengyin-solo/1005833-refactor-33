@@ -14,6 +14,7 @@
 ├── frontend/                 Vue 3 + Vite + TypeScript 前端（唯一运行单元）
 │   ├── src/views/            每个业务模块一个页面
 │   ├── src/api/local-service.ts   本地数据服务：列表、筛选、动作流转、导出
+│   ├── src/api/rescue-dispatch.ts 抢险任务共用服务：出动时限判定、单向流转、归队结论
 │   ├── src/data/             模块元数据 / 示例数据 / localStorage 持久化
 │   ├── src/stores/           会话与筛选状态
 │   └── vite.config.ts        dev server 配置（open: false，无 /api 代理）
@@ -68,4 +69,8 @@ npm run build
 - 字段、状态、动作与流转目标集中在 `frontend/src/data/modules.ts`；示例数据在
   `frontend/src/data/seed.ts`。
 - 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
+- 抢险任务的出动时限判定只有一套：`rescue-dispatch.ts` 里的 `rescueDeadline`，列表、详情、
+  归队清单都读它的结果；超时口径（最后一次出队起 24 小时）只在 `RESCUE_TIME_LIMIT_HOURS`
+  定义一次。任务状态沿 待派队 → 抢险中 → 已归队 单向推进，归队办结时判定冻结、结论落到
+  排水调度方案的待核对清单，已归队的历史记录不重算。
 - 想回到初始数据：清掉浏览器里 `drainage-pump:entries` 这一项，或调用 `resetModule(模块)`。

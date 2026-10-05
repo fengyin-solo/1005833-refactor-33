@@ -63,6 +63,49 @@
       </tbody>
     </table>
 
+    <h3 class="section-title">归队结论待核对清单</h3>
+    <p class="page-desc">抢险任务归队办结的结论汇总在这里，逐条核对。</p>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>任务编号</th>
+          <th>目标点位</th>
+          <th>抢险队</th>
+          <th>负责人</th>
+          <th>最后一次出队</th>
+          <th>归队时间</th>
+          <th>超时判定</th>
+          <th>核对状态</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in reviews" :key="String(row.id)">
+          <td>{{ row['任务编号'] }}</td>
+          <td>{{ row['目标点位'] }}</td>
+          <td>{{ row['抢险队'] }}</td>
+          <td>{{ row['负责人'] }}</td>
+          <td>{{ row['出队时间'] || '—' }}</td>
+          <td>{{ row['归队时间'] || '—' }}</td>
+          <td :class="{ 'error-text': row['超时判定'] === '已超时' }">{{ row['超时判定'] }}</td>
+          <td>{{ row['核对状态'] }}</td>
+          <td class="row-actions">
+            <button
+              v-if="row['核对状态'] === '待核对'"
+              class="link"
+              type="button"
+              @click="checkReview(row)"
+            >
+              核对
+            </button>
+          </td>
+        </tr>
+        <tr v-if="!reviews.length">
+          <td colspan="9" class="empty-state">暂无待核对的归队结论</td>
+        </tr>
+      </tbody>
+    </table>
+
     <footer class="page-foot">
       <span>共 {{ total }} 条排水调度方案记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
@@ -79,6 +122,7 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { checkReturnReview, listReturnReviews } from '@/api/rescue-dispatch'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('dispatchplan')
@@ -88,6 +132,7 @@ const statuses = ["待编制", "待审核", "已批准", "已废止"]
 const stats = [{"label": "待编制方案", "value": 0}, {"label": "待审核方案", "value": 0}, {"label": "已批准方案", "value": 0}]
 
 const rows = ref<EntryRow[]>([])
+const reviews = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
@@ -122,12 +167,23 @@ function runAction(action: string, row: EntryRow) {
   reload()
 }
 
+function checkReview(row: EntryRow) {
+  errorMessage.value = ''
+  const result = checkReturnReview(Number(row.id))
+  if (!result.ok) {
+    errorMessage.value = result.message
+    return
+  }
+  reload()
+}
+
 function reload() {
   errorMessage.value = ''
   try {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    reviews.value = listReturnReviews()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '排水调度方案列表读取失败'
   }
