@@ -67,6 +67,40 @@
       <span>共 {{ total }} 条排水调度方案记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
+
+    <section class="check-section">
+      <h3 class="section-title">归队办结待核对清单</h3>
+      <p class="page-desc">抢险任务归队办结的结论自动落到此处，核对后不再重复提示。</p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th v-for="column in checkColumns" :key="column">{{ column }}</th>
+            <th>核对状态</th>
+            <th>可执行动作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in checks" :key="String(row.id)">
+            <td v-for="column in checkColumns" :key="column">{{ row[column] || '—' }}</td>
+            <td>{{ row.status }}</td>
+            <td class="row-actions">
+              <button
+                v-if="row.status === '待核对'"
+                class="link"
+                type="button"
+                @click="checkRow(row)"
+              >
+                确认核对
+              </button>
+              <span v-else>—</span>
+            </td>
+          </tr>
+          <tr v-if="!checks.length">
+            <td :colspan="checkColumns.length + 2" class="empty-state">暂无待核对的归队办结结论</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
   </section>
 </template>
 
@@ -79,19 +113,28 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { confirmPlanCheck, listPlanChecks } from '@/api/rescueteam-service'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('dispatchplan')
 const columns = ["方案编号", "方案名称", "适用雨型", "涉及泵站", "编制人", "审核人", "生效日期", "方案状态"]
 const actions = ["提交编制", "批准方案", "废止方案"]
 const statuses = ["待编制", "待审核", "已批准", "已废止"]
-const stats = [{"label": "待编制方案", "value": 0}, {"label": "待审核方案", "value": 0}, {"label": "已批准方案", "value": 0}]
+const checkColumns = ["任务编号", "目标点位", "抢险队", "最后出队时间", "归队时间", "办结结论"]
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
+// 抢险任务归队办结的结论落在这里，等待核对
+const checks = ref<EntryRow[]>([])
+const stats = computed(() => [
+  { label: '待编制方案', value: rows.value.filter((row) => String(row.status) === '待编制').length },
+  { label: '待审核方案', value: rows.value.filter((row) => String(row.status) === '待审核').length },
+  { label: '已批准方案', value: rows.value.filter((row) => String(row.status) === '已批准').length },
+  { label: '待核对结论', value: checks.value.filter((row) => String(row.status) === '待核对').length },
+])
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
     status,
@@ -122,12 +165,23 @@ function runAction(action: string, row: EntryRow) {
   reload()
 }
 
+function checkRow(row: EntryRow) {
+  errorMessage.value = ''
+  const result = confirmPlanCheck(Number(row.id))
+  if (!result.ok) {
+    errorMessage.value = result.message
+    return
+  }
+  reload()
+}
+
 function reload() {
   errorMessage.value = ''
   try {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    checks.value = listPlanChecks()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '排水调度方案列表读取失败'
   }

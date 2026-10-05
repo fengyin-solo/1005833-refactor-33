@@ -16,6 +16,8 @@ const Screen = () => import('@/views/screen/index.vue')
 const Outfallpatrol = () => import('@/views/outfallpatrol/index.vue')
 const Floodwarn = () => import('@/views/floodwarn/index.vue')
 const Rescueteam = () => import('@/views/rescueteam/index.vue')
+const RescueteamDetail = () => import('@/views/rescueteam/detail.vue')
+const RescueteamReturned = () => import('@/views/rescueteam/returned.vue')
 const Drainequipment = () => import('@/views/drainequipment/index.vue')
 const Cctvinspect = () => import('@/views/cctvinspect/index.vue')
 const Dispatchplan = () => import('@/views/dispatchplan/index.vue')
@@ -39,6 +41,8 @@ const router = createRouter({
     { path: '/outfallpatrol', name: 'outfallpatrol', component: Outfallpatrol },
     { path: '/floodwarn', name: 'floodwarn', component: Floodwarn },
     { path: '/rescueteam', name: 'rescueteam', component: Rescueteam },
+    { path: '/rescueteam/detail/:id', name: 'rescueteam-detail', component: RescueteamDetail },
+    { path: '/rescueteam/returned', name: 'rescueteam-returned', component: RescueteamReturned },
     { path: '/drainequipment', name: 'drainequipment', component: Drainequipment },
     { path: '/cctvinspect', name: 'cctvinspect', component: Cctvinspect },
     { path: '/dispatchplan', name: 'dispatchplan', component: Dispatchplan },
